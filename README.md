@@ -1,0 +1,2 @@
+# dollartrader-
+Deriv trading bot
