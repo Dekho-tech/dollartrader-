@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dollartrader — Deriv Bot</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#060f1e;color:#e0eaff;font-family:'Segoe UI',sans-serif;min-height:100vh}
+.hidden{display:none!important}
+
+/* LOGIN */
+#loginScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.logo{font-size:32px;font-weight:900;color:#00D2B4;margin-bottom:8px;letter-spacing:1px}
+.logo span{color:#fff}
+.tagline{color:#8ba3c7;font-size:14px;margin-bottom:40px;text-align:center}
+.loginBtn{background:linear-gradient(90deg,#00D2B4,#00b89c);color:#060f1e;border:none;border-radius:12px;padding:16px 40px;font-size:17px;font-weight:800;cursor:pointer;width:100%;max-width:320px;margin-bottom:16px}
+.demoBtn{background:transparent;color:#00D2B4;border:2px solid #00D2B4;border-radius:12px;padding:14px 40px;font-size:15px;font-weight:700;cursor:pointer;width:100%;max-width:320px}
+.disclaimer{font-size:11px;color:#4a6080;margin-top:24px;text-align:center;max-width:300px;line-height:1.6}
+
+/* APP */
+#app{display:none;flex-direction:column;min-height:100vh}
+.header{background:#0a1628;border-bottom:1px solid #1e3a5f;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+.headerLogo{font-weight:900;font-size:16px;color:#00D2B4}
+.headerAccount{text-align:right}
+.headerAccount .acct{font-size:10px;color:#8ba3c7}
+.headerAccount .bal{font-size:15px;font-weight:700;color:#00D2B4}
+.statusBar{padding:6px 16px;display:flex;align-items:center;gap:8px;font-size:12px;border-bottom:1px solid #1e3a5f}
+.statusDot{width:8px;height:8px;border-radius:50%;background:#8ba3c7}
+.statusDot.running{background:#00D2B4;box-shadow:0 0 8px #00D2B4;animation:pulse 1.5s infinite}
+.nav{display:flex;gap:4px;padding:10px 12px;background:#060f1e;border-bottom:1px solid #1e3a5f;overflow-x:auto}
+.navBtn{padding:8px 14px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:12px;background:transparent;color:#8ba3c7;white-space:nowrap}
+.navBtn.active{background:#00D2B4;color:#060f1e}
+.content{padding:14px;flex:1}
+.tab{display:none}
+.tab.active{display:block}
+
+/* CARDS */
+.card{background:linear-gradient(135deg,#0d2040,#0a1628);border:1px solid #1e3a5f;border-radius:12px;padding:16px;margin-bottom:16px}
+.cardTitle{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-weight:700;font-size:14px;color:#00D2B4}
+.row{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.rowLabel{font-size:12px;color:#8ba3c7;min-width:120px}
+select,input[type=number]{background:#0d2040;color:#e0eaff;border:1px solid #1e3a5f;border-radius:6px;padding:5px 8px;font-size:12px;cursor:pointer}
+.toggle{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:#8ba3c7;margin-bottom:8px}
+.toggleTrack{width:36px;height:20px;border-radius:10px;background:#1e3a5f;position:relative;transition:background 0.2s;flex-shrink:0}
+.toggleTrack.on{background:#00D2B4}
+.toggleThumb{width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left 0.2s}
+.toggleTrack.on .toggleThumb{left:18px}
+
+/* BUTTONS */
+.runBtn{width:100%;padding:14px;border-radius:10px;border:none;font-size:16px;font-weight:800;cursor:pointer;margin-bottom:16px;transition:all 0.3s}
+.runBtn.start{background:linear-gradient(90deg,#00D2B4,#00b89c);color:#060f1e;box-shadow:0 0 20px rgba(0,210,180,0.4)}
+.runBtn.stop{background:linear-gradient(90deg,#c0392b,#e74c3c);color:#fff;box-shadow:0 0 20px rgba(231,76,60,0.4)}
+
+/* ANALYSIS */
+.priceBox{background:#060f1e;border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.price{font-size:22px;font-weight:800;letter-spacing:1px}
+.digitBadge{width:44px;height:44px;border-radius:50%;background:#0d2040;border:2px solid #00D2B4;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:#00D2B4}
+.digitBars{display:flex;gap:4px;align-items:flex-end;padding:24px 0 8px;min-height:120px}
+.digitCol{display:flex;flex-direction:column;align-items:center;flex:1}
+.digitPct{font-size:10px;color:#8ba3c7;margin-bottom:4px}
+.digitBar{width:100%;border-radius:4px;min-height:4px;transition:all 0.3s}
+.digitNum{font-size:12px;font-weight:700;margin-top:4px}
+.barsLegend{display:flex;justify-content:space-between;font-size:10px;color:#8ba3c7;margin-top:8px}
+
+/* STATS GRID */
+.statsGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.statCard{background:#0d2040;border:1px solid #1e3a5f;border-radius:10px;padding:14px;text-align:center}
+.statVal{font-size:20px;font-weight:800}
+.statLabel{font-size:11px;color:#8ba3c7;margin-top:2px}
+
+/* LOG */
+.logWrap{max-height:280px;overflow-y:auto}
+.logRow{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #0d2040;font-size:11px}
+.logTime{color:#8ba3c7;white-space:nowrap}
+.logMsg.success{color:#00D2B4}
+.logMsg.error{color:#e74c3c}
+.logMsg.warning{color:#f39c12}
+.logMsg.info{color:#8ba3c7}
+
+/* FREE BOTS */
+.botCard{background:#0d2040;border:1px solid #1e3a5f;border-radius:10px;padding:14px;margin-bottom:12px}
+.botName{font-weight:700;font-size:14px;color:#e0eaff}
+.botTag{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px}
+.botDesc{font-size:12px;color:#8ba3c7;margin:6px 0 10px}
+.loadBtn{background:transparent;border:1px solid #00D2B4;color:#00D2B4;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;font-weight:600}
+
+/* SIGNAL */
+.signalRow{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #0d2040;font-size:12px}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="logo">Dollar<span>trader</span></div>
+  <div class="tagline">Professional Deriv Trading Bot</div>
+  <button class="loginBtn" onclick="loginWithDeriv()">🔐 Login with Deriv</button>
+  <button class="demoBtn" onclick="startDemo()">▶ Try Demo Mode</button>
+  <div class="disclaimer">⚠️ Trading involves risk. Only trade with money you can afford to lose. This bot does not guarantee profits.</div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <div class="header">
+    <div>
+      <div class="headerLogo">Dollartrader</div>
+      <div style="font-size:10px;color:#8ba3c7">Deriv Trading Bot</div>
+    </div>
+    <div class="headerAccount">
+      <div class="acct" id="accountId">Demo Mode</div>
+      <div class="bal" id="balanceDisplay">$0.00 USD</div>
+    </div>
+  </div>
+
+  <div class="statusBar" id="statusBar" style="background:rgba(30,58,95,0.3)">
+    <div class="statusDot" id="statusDot"></div>
+    <span id="statusText" style="color:#8ba3c7">Bot is not running</span>
+    <span id="tradeCount" style="margin-left:auto;color:#8ba3c7"></span>
+  </div>
+
+  <div class="nav">
+    <button class="navBtn active" onclick="switchTab('dashboard',this)">📈 Dashboard</button>
+    <button class="navBtn" onclick="switchTab('bot',this)">🤖 Bot Builder</button>
+    <button class="navBtn" onclick="switchTab('analysis',this)">📊 Analysis</button>
+    <button class="navBtn" onclick="switchTab('freebots',this)">🎁 Free Bots</button>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="tab active" id="tab-dashboard">
+      <div class="statsGrid">
+        <div class="statCard"><div class="statVal" id="statTrades">0</div><div class="statLabel">Total Trades</div></div>
+        <div class="statCard"><div class="statVal" style="color:#00D2B4" id="statWins">0</div><div class="statLabel">Wins</div></div>
+        <div class="statCard"><div class="statVal" style="color:#e74c3c" id="statLosses">0</div><div class="statLabel">Losses</div></div>
+        <div class="statCard"><div class="statVal" style="color:#f39c12" id="statWinRate">0%</div><div class="statLabel">Win Rate</div></div>
+        <div class="statCard"><div class="statVal" id="statPnL">$0.00</div><div class="statLabel">Net P&L</div></div>
+        <div class="statCard"><div class="statVal" id="statStatus" style="color:#8ba3c7">IDLE</div><div class="statLabel">Bot Status</div></div>
+      </div>
+      <div class="card">
+        <div class="cardTitle">📋 Activity Log</div>
+        <div class="logWrap" id="logWrap">
+          <div style="text-align:center;color:#8ba3c7;font-size:12px;padding:16px">No activity yet. Start the bot to see logs.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOT BUILDER -->
+    <div class="tab" id="tab-bot">
+      <div class="card">
+        <div class="cardTitle">⚙️ 1. Trade Parameters</div>
+        <div class="row"><span class="rowLabel">Market:</span>
+          <select id="market">
+            <option>Volatility 10 (1s) Index</option>
+            <option>Volatility 25 (1s) Index</option>
+            <option>Volatility 50 (1s) Index</option>
+            <option>Volatility 75 (1s) Index</option>
+            <option selected>Volatility 100 (1s) Index</option>
+            <option>Boom 300 Index</option>
+< truncated lines 163-488 >
+    'Volatility 50 (1s) Index':'1HZ50V','Volatility 75 (1s) Index':'1HZ75V',
+    'Volatility 100 (1s) Index':'1HZ100V','Boom 300 Index':'BOOM300N',
+    'Crash 300 Index':'CRASH300N','Boom 500 Index':'BOOM500','Crash 500 Index':'CRASH500'
+  };
+  return map[name] || '1HZ100V';
+}
+
+// ── ANALYSIS ─────────────────────────────────────────────────────────────
+function toggleFeed() {
+  if (feedRunning) {
+    feedRunning = false;
+    clearInterval(feedInterval);
+    document.getElementById('feedBtn').textContent = '▶ Start Live Feed';
+    document.getElementById('feedBtn').className = 'runBtn start';
+    if (ws) ws.send(JSON.stringify({forget_all:'ticks'}));
+  } else {
+    feedRunning = true;
+    document.getElementById('feedBtn').textContent = '⏹ Stop Live Feed';
+    document.getElementById('feedBtn').className = 'runBtn stop';
+    if (ws) {
+      const sym = getSymbol(document.getElementById('anaMarket').value);
+      ws.send(JSON.stringify({ticks: sym, subscribe: 1}));
+    } else {
+      feedInterval = setInterval(simulateTick, 800);
+    }
+  }
+}
+
+function simulateTick() {
+  const p = parseFloat(document.getElementById('livePrice').textContent.replace(/,/g,''));
+  const newP = +(p + (Math.random()-0.5)*20).toFixed(2);
+  updateLiveTick(newP);
+}
+
+function updateLiveTick(price) {
+  const str = price.toFixed(2).replace('.','');
+  const digit = parseInt(str[str.length-1]);
+  currentDigit = digit;
+  document.getElementById('livePrice').textContent = parseFloat(price).toLocaleString('en',{minimumFractionDigits:2});
+  document.getElementById('liveDigit').textContent = digit;
+  distribution[digit] = (distribution[digit]||0)+1;
+  totalTicks++;
+  const win = parseInt(document.getElementById('tickWindow').value)||1000;
+  document.getElementById('tickProgress').textContent = Math.min(totalTicks,win)+'/'+win;
+  document.getElementById('windowLabel').textContent = win;
+  renderBars();
+  renderSignals();
+}
+
+function renderBars() {
+  const total = Object.values(distribution).reduce((a,b)=>a+b,0)||1;
+  const vals = Object.values(distribution);
+  const maxV = Math.max(...vals);
+  const minV = Math.min(...vals);
+  const colors = ['#6c8ebf','#e74c3c','#95a5a6','#e67e22','#e91e63','#ff9800','#8e44ad','#27ae60','#9e9e9e','#3498db'];
+  let html = '';
+  for(let d=0;d<=9;d++){
+    const cnt = distribution[d]||0;
+    const pct = (cnt/total*100).toFixed(1);
+    const h = Math.max(4, cnt/total*80);
+    const isCurrent = d===currentDigit;
+    const isMax = cnt===maxV;
+    const isMin = cnt===minV;
+    const border = isCurrent||isMax ? '2px solid #fff' : 'none';
+    const bg = isCurrent ? '#00D2B4' : colors[d];
+    const label = isMax ? '<div style="font-size:9px;color:#00D2B4;margin-bottom:2px">▲</div>' : isMin ? '<div style="font-size:9px;color:#e74c3c;margin-bottom:2px">▼</div>' : '<div style="height:14px"></div>';
+    html += `<div class="digitCol">${label}<div class="digitPct">${pct}%</div><div class="digitBar" style="height:${h}px;background:${bg};border:${border}"></div><div class="digitNum" style="color:${isCurrent?'#00D2B4':'#e0eaff'}">${d}</div></div>`;
+  }
+  document.getElementById('digitBars').innerHTML = html;
+}
+
+function renderSignals() {
+  const total = Object.values(distribution).reduce((a,b)=>a+b,0)||1;
+  let html = '';
+  for(let d=0;d<=9;d++){
+    const pct = (distribution[d]||0)/total*100;
+    const sig = pct>12 ? '🔴 Overbought' : pct<8 ? '🟢 Opportunity' : '⚪ Neutral';
+    html += `<div class="signalRow"><span style="color:#8ba3c7">Digit ${d}</span><span style="color:#e0eaff;font-weight:600">${pct.toFixed(1)}%</span><span style="font-size:11px">${sig}</span></div>`;
+  }
+  document.getElementById('signalsPanel').innerHTML = html;
+}
+
+function resetDistribution() {
+  for(let i=0;i<=9;i++) distribution[i]=Math.floor(Math.random()*120+80);
+  totalTicks=0;
+  renderBars();
+  renderSignals();
+}
+
+// ── UI HELPERS ────────────────────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.navBtn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function toggleSwitch(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('on');
+}
+
+function updateStatus(running) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  const bar = document.getElementById('statusBar');
+  const btn = document.getElementById('runBtn');
+  dot.className = 'statusDot' + (running?' running':'');
+  txt.textContent = running ? 'Bot is running…' : 'Bot is not running';
+  txt.style.color = running ? '#00D2B4' : '#8ba3c7';
+  bar.style.background = running ? 'rgba(0,210,180,0.1)' : 'rgba(30,58,95,0.3)';
+  btn.className = 'runBtn ' + (running?'stop':'start');
+  btn.textContent = running ? '⏹ Stop Bot' : '▶ Run Bot';
+}
+
+function updateStats() {
+  const total = wins+losses;
+  document.getElementById('statTrades').textContent = total;
+  document.getElementById('statWins').textContent = wins;
+  document.getElementById('statLosses').textContent = losses;
+  document.getElementById('statWinRate').textContent = total ? (wins/total*100).toFixed(1)+'%' : '0%';
+  const pnlEl = document.getElementById('statPnL');
+  pnlEl.textContent = (totalPnL>=0?'+':'')+'$'+totalPnL.toFixed(2);
+  pnlEl.style.color = totalPnL>=0?'#00D2B4':'#e74c3c';
+  document.getElementById('tradeCount').textContent = total+' trades';
+}
+
+function addLog(msg, type='info') {
+  const wrap = document.getElementById('logWrap');
+  if(wrap.querySelector('div[style]')) wrap.innerHTML='';
+  const row = document.createElement('div');
+  row.className = 'logRow';
+  const t = new Date().toLocaleTimeString();
+  row.innerHTML = `<span class="logTime">${t}</span><span class="logMsg ${type}">${msg}</span>`;
+  wrap.insertBefore(row, wrap.firstChild);
+}
+
+function updateRestartSummary() {
+  const p = document.getElementById('purchase')?.value||'Rise';
+  const s = document.getElementById('stake')?.value||'1';
+  const d = document.getElementById('duration')?.value||'1';
+  const dt = document.getElementById('durationType')?.value||'Ticks';
+  const el = document.getElementById('restartSummary');
+  if(el) el.textContent = `${p} | $${s} | ${d} ${dt}`;
+}
+
+function loadBot(purchase, market) {
+  document.getElementById('purchase').value = purchase;
+  document.getElementById('market').value = market;
+  switchTab('bot', document.querySelectorAll('.navBtn')[1]);
+  updateRestartSummary();
+}
+
+// Live update restart summary
+['purchase','stake','duration','durationType'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('change', updateRestartSummary);
+});
+</script>
+</body>
+  </html>
